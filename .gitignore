@@ -1,0 +1,6 @@
+# Ignore compiled python files
+*.pyc
+
+# Ignore UI files
+.DS_Store
+Thumbs.db
