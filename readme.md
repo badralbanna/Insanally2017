@@ -4,21 +4,31 @@
 
 This repository contains the code used for analysis in Insanally, et al 2017. 
 
+## Requirements
+
+All packages and scripts used to analyze our data were
+custom written in `python` (2.7.13) using `jupyter` (1.0.0) and `ipython` (5.3.0). Parallelization for multi-core processors was accomplished using `ipyparallel` (6.0.2). 
+
+Additional packages required are:
+
+- `numpy` (1.13.1)
+- `scipy` (0.19.1)
+- `matplotlib` (2.0.2)
+- `h5py` (2.7.0)
+- `scikit-learn` (0.19.0)
+- `statsmodels` (0.8.0)
+
 ## Files and Directories
 
-- **Readme.md:** This file
-- **bayseian_neural_decoding:** this python module contains the analysis tools for:
+- **`Readme.md`:** This file
+- **`data/`**: Directory containing two examples each from ACtx and FR2, one responsive and one non-responsive.
+- **`animal_info.py`**: Python file containing a dictionary ANIMALS with relelvant infomation about each recording session needed to load the data. 
+- **`bayseian_neural_decoding/`:** this python packge contains the analysis tools for:
   - the ISI-based baysian deocder
   - the Poisson-based ISI deocder
   - the first-spike latency-based decoder
-  - choice probability decoder
-
-## To be added
-
-This repo will also shortly include 
-
-- The scripts used to establish non-responsiveness
-- The scripts used to calculate cell firing statsitics
-- The scripts used to calculate receptive field frequency and bandwidth.
-- Sample scripts using baysian_neural_decoding to analyize single and multi-unit responses.
+- **`MI_beh_plots.py`**: Python module containing the plotting functions used to generate all figures.
+- **`Defining non-responsiveness.ipynb`**: Jupyter notebook containing the scripts used to identify non-responsive cells.  
+- **`Calculating cell firing statistics and receptive field.ipynb`**: Jupyter notebook containing the scripts used to calucalte all cell firing statistics shown in Extended Data Figure 7. 
+- **`Decoding responses.ipynb`:** Script for decoding all recordinf sessions referenced in `animal_info.py`.
 
