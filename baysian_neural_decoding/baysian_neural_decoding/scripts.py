@@ -320,7 +320,6 @@ def main_script(variable_dict, spikes, trial_times, response_function, probabili
             results[variable_name]['traces'] = num_trials*[None]
             results[variable_name]['trace_times'] = num_trials*[None]
 
-
     # Break data into folds
     folds = break_into_folds_balanced(variable_dict, num_folds)
     for test_set in folds:

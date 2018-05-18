@@ -149,8 +149,10 @@ def counts_load(directory, seperate_files=False, reformat_name=True, max_size=No
                                 counts[animal][tuple([neuron])] = data
                             else:
                                 counts[animal][neuron] = data
-                except:
+                except KeyboardInterrupt:
                     raise
+                except:
+                    #raise
                     print("Problem with {0}".format(file_name))
             if seperate_files:
                 try:
@@ -170,6 +172,8 @@ def counts_load(directory, seperate_files=False, reformat_name=True, max_size=No
                                 counts[animal][neurons] = data[neurons]
                             else:
                                 counts[animal][neurons] = data
+                    except KeyboardInterrupt:
+                        raise
                     except:
                         #raise
                         print("Problem with {0}".format(file_name))
@@ -237,8 +241,10 @@ def responses_load(directory):
                     responses[animal] = {}
                     for neuron, data in animal_dict.iteritems():
                         responses[animal][(neuron, )] = data
-            except:
+            except KeyboardInterrupt:
                 raise
+            except:
+                #raise
                 print("Problem with {0}".format(file_name))
     return(responses)
 
@@ -292,23 +298,71 @@ def inf_dot_product(difference_1, difference_2, cutoff=None, times=None):
 #########################################
 
 
-def calculate_MI(joint_counts):
+def MI(cts):
     def entropy_term(x):
         if x == 0:
             return(0)
         else:
             return(-x*numpy.log2(x))
-    vec_entropy_term = numpy.vectorize(entropy_term)
+    
+    def entropy(x):
+        S = 0.
+        for i in x:
+            S += entropy_term(i)
+        return(S) 
 
-    p0 = numpy.sum(joint_counts, axis = 1) / numpy.sum(joint_counts)
-    p1 = numpy.sum(joint_counts, axis = 0) / numpy.sum(joint_counts)
-    p0g1 = joint_counts.copy()
-    p0g1[:,0] = p0g1[:,0] / numpy.sum(p0g1[:,0])
-    p0g1[:,1] = p0g1[:,1] / numpy.sum(p0g1[:,1])
+    pr0 = (cts[0,0] + cts[1,0]) / numpy.sum(cts)
+    pr1 = (cts[0,1] + cts[1,1]) / numpy.sum(cts)
+    ps0 = (cts[0,0] + cts[0,1]) / numpy.sum(cts)
+    ps1 = (cts[1,0] + cts[1,1]) / numpy.sum(cts)
 
-    entropy0 = vec_entropy_term(p0).sum()
-    entropy0g1 = vec_entropy_term(p0g1[:,0]).sum()*p1[0] + vec_entropy_term(p0g1[:,1]).sum()*p1[1]
-    return( ( (entropy0 -  entropy0g1) / entropy0, ))
+    #S = entropy([pr0, pr1])
+    S = entropy([ps0, ps1])
+
+    pr0cs0 = cts[0,0] / numpy.sum(cts[0,:])
+    pr1cs0 = cts[0,1] / numpy.sum(cts[0,:])
+    pr0cs1 = cts[1,0] / numpy.sum(cts[1,:])
+    pr1cs1 = cts[1,1] / numpy.sum(cts[1,:])
+
+    ps0cr0 = cts[0,0] / numpy.sum(cts[:,0])
+    ps1cr0 = cts[1,0] / numpy.sum(cts[:,0])
+    ps0cr1 = cts[0,1] / numpy.sum(cts[:,1])
+    ps1cr1 = cts[1,1] / numpy.sum(cts[:,1])
+
+    #S_cond = ps0 * entropy([pr0cs0, pr1cs0]) + ps1 * entropy([pr0cs1, pr1cs1]) 
+    S_cond = pr0 * entropy([ps0cr0, ps1cr0]) + pr1 * entropy([ps0cr1, ps1cr1]) 
+    
+    return((S - S_cond, ))
+
+
+def SI(cts):
+    def l2(x):
+        if x == 0:
+            return(0)
+        else:
+            return(-numpy.log2(x))
+
+    ps0 = (cts[0,0] + cts[0,1]) / numpy.sum(cts)
+    ps1 = (cts[1,0] + cts[1,1]) / numpy.sum(cts)
+
+    pr0cs0 = cts[0,0] / numpy.sum(cts[0,:])
+    pr1cs0 = cts[0,1] / numpy.sum(cts[0,:])
+    pr0cs1 = cts[1,0] / numpy.sum(cts[1,:])
+    pr1cs1 = cts[1,1] / numpy.sum(cts[1,:])
+
+    ps0cr0 = cts[0,0] / numpy.sum(cts[:,0])
+    ps1cr0 = cts[1,0] / numpy.sum(cts[:,0])
+    ps0cr1 = cts[0,1] / numpy.sum(cts[:,1])
+    ps1cr1 = cts[1,1] / numpy.sum(cts[:,1])
+
+    return((l2(ps0) - pr0cs0 * l2(ps0cr0) - pr1cs0 * l2(ps0cr1)), 
+           (l2(ps1) - pr0cs1 * l2(ps1cr0) - pr1cs1 * l2(ps1cr1)))
+
+
+def prob(cts):
+    ps0 = (cts[0,0] + cts[0,1]) / numpy.sum(cts)
+    ps1 = (cts[1,0] + cts[1,1]) / numpy.sum(cts)
+    return((ps0, ps1))
 
 
 def percent_correct(joint_probability):
@@ -795,7 +849,7 @@ def sig_filter(sig_list, sig_threshhold):
 ######################
 
 
-def plot_scatter_w_density(x_points, y_points, colors = 'b', markers = 'o', filled = True, linestyles='-', labels = None, error_bars = None, bounds = ([0,1], [0,1]), guides = (.5,.5), x_ticks = [0, .5, 1.], y_ticks = [0, .5, 1.], format_percent = True, fig_size = (3, 3)):
+def plot_scatter_w_density(x_points, y_points, colors = 'b', markers = 'o', filled = True, linestyles='-', labels = None, error_bars = None, bounds = ([0,1], [0,1]), show_hist=True, size=6, guides = (.5,.5), x_ticks = [0, .5, 1.], y_ticks = [0, .5, 1.], format_percent = True, fig_size = (3, 3)):
 
     # Check if we have multiple data sets
     if not isinstance(x_points[0], Number):
@@ -833,8 +887,9 @@ def plot_scatter_w_density(x_points, y_points, colors = 'b', markers = 'o', fill
     axHistx = plt.axes(rect_histx, sharex = axScatter)
     axHisty = plt.axes(rect_histy, sharey = axScatter)
 
-    axHistx.plot([x_guide, x_guide], [-10, 50], color = 'k', linewidth=.5, zorder=0)
-    axHisty.plot([-10, 50], [y_guide, y_guide], color = 'k', linewidth=.5, zorder=0)
+    if show_hist:
+        axHistx.plot([x_guide, x_guide], [-10, 50], color = 'k', linewidth=.5, zorder=0)
+        axHisty.plot([-10, 50], [y_guide, y_guide], color = 'k', linewidth=.5, zorder=0)
     axScatter.plot([x_guide,x_guide], [-10, 10], color = 'k', linewidth=.5, zorder=0)
     axScatter.plot([-10, 10], [y_guide, y_guide], color = 'k', linewidth=.5, zorder=0)
 
@@ -845,25 +900,26 @@ def plot_scatter_w_density(x_points, y_points, colors = 'b', markers = 'o', fill
         assert len(x_points) == len(y_points)
         if len(x_points) == 0:
             return(None, 0, 0)
-        elif len(x_points) == 1:
-            x_max = 0
-            y_max = 0
-        elif len(x_points) > 1:
+        elif len(x_points)>1 and show_hist:
             x_density = kde.gaussian_kde(x_points)
             y_density = kde.gaussian_kde(y_points)
             axHistx.plot(X, x_density(X), color = color, linestyle = linestyle, linewidth = LINEWIDTH)
             x_max = numpy.max(x_density(X))
             axHisty.plot(y_density(Y), Y, color = color, linestyle = linestyle, linewidth = LINEWIDTH)
             y_max = numpy.max(y_density(Y))
+        else:
+            x_max = 0
+            y_max = 0
+        
 
         if not filled:
             facecolor = 'white'
         else:
             facecolor = color
         if error_bar != None:
-            points = axScatter.errorbar(x_points, y_points, xerr = error_bar[0] , yerr = error_bar[1], mfc = facecolor, mec = color, ecolor = color, fmt = marker, mew = LINEWIDTH, ms = SIZE, capsize = 2)
+            points = axScatter.errorbar(x_points, y_points, xerr = error_bar[0] , yerr = error_bar[1], mfc = facecolor, mec = color, ecolor = color, fmt = marker, mew = LINEWIDTH, ms = size, capsize = 2)
         else:
-            points = axScatter.scatter(x_points, y_points, facecolor = facecolor, edgecolor = color, linewidth = LINEWIDTH, marker = marker, s = SIZE**2)
+            points = axScatter.scatter(x_points, y_points, facecolor = facecolor, edgecolor = color, linewidth = LINEWIDTH, marker = marker, s = size**2)
         return(points, x_max, y_max)
 
     if multiple:
@@ -894,24 +950,26 @@ def plot_scatter_w_density(x_points, y_points, colors = 'b', markers = 'o', fill
     axHistx.spines['top'].set_visible(False)
     axHistx.spines['right'].set_visible(False)
     axHistx.spines['left'].set_visible(False)
-    axHistx.spines['bottom'].set_visible(False)
+    #axHistx.spines['bottom'].set_visible(False)
     axHistx.yaxis.set_major_formatter(plt.NullFormatter())
     axHistx.set_yticks([])
     axHistx.xaxis.set_ticks_position("none")
     plt.setp(axHistx.get_yticklabels(), visible = False)
     plt.setp(axHistx.get_xticklabels(), visible = False)
-    axHistx.set_ylim([-.002, x_max*1.1])
+    if show_hist:
+        axHistx.set_ylim([-.002, x_max*1.1])
 
     axHisty.spines['top'].set_visible(False)
     axHisty.spines['right'].set_visible(False)
-    axHisty.spines['left'].set_visible(False)
+    #axHisty.spines['left'].set_visible(False)
     axHisty.spines['bottom'].set_visible(False)
     axHisty.xaxis.set_major_formatter(plt.NullFormatter())
     axHisty.set_xticks([])
     axHisty.yaxis.set_ticks_position("none")
     plt.setp(axHisty.get_yticklabels(), visible = False)
     plt.setp(axHisty.get_xticklabels(), visible = False)
-    axHisty.set_xlim([-.002, y_max*1.1])
+    if show_hist:
+        axHisty.set_xlim([-.002, y_max*1.1])
 
     if labels != None:
         if multiple:
@@ -1008,7 +1066,7 @@ def plot_legend(point_styles, labels = None, points_filled = None, colors = 'k',
     else:
         width = .2
         ax_width = 1
-    fig = plt.figure(figsize = (width, .3*num_items))
+    fig = plt.figure(figsize = (width, .2*num_items))
     ax = fig.add_axes([0,0,ax_width,1])
     plt.axis('off')
     spacing = 1. / (num_items + 1.)
@@ -1074,7 +1132,7 @@ def plot_histogram(values, low, high, bin_size, sig_filter=None, color='k', line
     return(ax, counts)
 
 
-def plot_boxplot(locations, values, markers='o', colors='k', centercolors='k', linestyles='solid', filled=False, draw_type='jitter', labels=None, y_ticks=None, y_ticklabels=None, y_bounds=None, width=.9, draw_sig=False, sig_pairs=None, sig_levels=None, spacer=.02, fig_size=(3, 2), size=SIZE, mean=False):
+def plot_boxplot(locations, values, markers='o', colors='k', centercolors='k', linestyles='solid', filled=False, draw_type='jitter', labels=None, y_ticks=None, y_ticklabels=None, y_bounds=None, width=.9, draw_sig=False, sig_pairs=None, sig_levels=None, man_sig=None, spacer=.02, fig_size=(3, 2), size=SIZE, mean=False):
     if centercolors is None:
         if type(colors) is not list:
             centercolors = colors
@@ -1124,20 +1182,23 @@ def plot_boxplot(locations, values, markers='o', colors='k', centercolors='k', l
                 facecolor = color
             else:
                 facecolor = 'white'
-            ax.plot([location, location], [Q1, Q3], linewidth=4, color='white', zorder=8)
+            ax.plot([location, location], [Q1, Q3], linewidth=4, color='white', zorder=9)
             ax.scatter([location], [median], s=1.5 * size**2, facecolor='white', color='white', linewidth=4, zorder=8)
             ax.plot([location, location], [Q1, Q3], linewidth=2, color=color, zorder=10)
-            ax.scatter([location], [median], s=1.5 * size**2, facecolor=facecolor, color=color, linewidth=2, zorder=11)
+            ax.scatter([location], [median], s=1.5*size**2, facecolor=facecolor, color=color, linewidth=2, zorder=11)
         elif draw_type is 'bar':
             if fill is False:
                 current_color='white'
+                edge_color=color
             else:
                 current_color=color
-            ax.bar(location, median, align='center', color=current_color)
-            ax.plot([location, location], [Q1, Q3], linewidth = 1, color = color, linestyle = linestyle)
+                edge_color=color
+            ax.bar(location, median, align='center', color=current_color, edgecolor=edge_color, alpha=.5, width=width)
+            ax.bar(location, median, align='center', edgecolor=edge_color, fill=False, width=width)
+            #ax.plot([location, location], [Q1, Q3], linewidth=3, color='white', zorder=9)
+            ax.plot([location, location], [Q1, Q3], linewidth = 1, color = color, linestyle = linestyle, zorder=11)
             return(Q1, Q3)
         return(smallest, largest)
-
 
     def draw_jitter_plot(location, width, values, marker, color, filled):
         #num_values = len(values)
@@ -1152,18 +1213,20 @@ def plot_boxplot(locations, values, markers='o', colors='k', centercolors='k', l
             facecolor = color
         else:
             facecolor = 'white'
-        ax.scatter(x_values, values, facecolor=facecolor, color=color, linewidth=LINEWIDTH, alpha=.4, s=size**2)
+        ax.scatter(x_values, values, facecolor=facecolor, color=color, linewidth=LINEWIDTH, alpha=.9, s=size**2)
         pass
 
     def draw_significance(location_1, location_2, height, level):
-        ax.plot([location_1, location_1], [height, height + spacer], color = 'k', linewidth=.5)
-        ax.plot([location_2, location_2], [height, height + spacer], color = 'k', linewidth=.5)
-        ax.plot([location_1, location_2], [height + spacer, height + spacer], color = 'k', linewidth=.5)
+        ax.plot([location_1, location_1], [height, height + spacer], color = 'k', linewidth=.5, zorder=20)
+        ax.plot([location_2, location_2], [height, height + spacer], color = 'k', linewidth=.5, zorder=20)
+        ax.plot([location_1, location_2], [height + spacer, height + spacer], color = 'k', linewidth=.5, zorder=20)
         if level == 0:
             level_text = 'n.s.'
+            h_loc = height + 1.5*spacer
         else:
             level_text = level*'*'
-        ax.text((location_1 + location_2) / 2., height + 1.3*spacer , level_text, ha='center')
+            h_loc = height + .5*spacer
+        ax.text((location_1 + location_2) / 2., h_loc, level_text, ha='center', zorder=20)
 
     if multiple:
         smallest_a = 0
@@ -1202,12 +1265,14 @@ def plot_boxplot(locations, values, markers='o', colors='k', centercolors='k', l
             draw_jitter_plot(locations, width, values, marker, colors, centercolors, fill)
 
     if draw_sig:
-        MULTI = 2
+        MULTI = 3.2
         num_sig = len(sig_pairs)
-        space_stack = []
-        for value in values:
-            if len(value) != 0:
-                space_stack.append(numpy.max(value))
+        # space_stack = []
+        # if draw_type == 'jitter':
+        #     for value in values:
+        #         if len(value) != 0:
+        #             space_stack.append(numpy.max(value))
+        # else:
         if y_ticks is not None:
             ax.set_ylim([min(y_ticks), max(y_ticks) + spacer*MULTI*num_sig])
         for pair, level in zip(sig_pairs, sig_levels):
@@ -1215,6 +1280,16 @@ def plot_boxplot(locations, values, markers='o', colors='k', centercolors='k', l
             lift = pair[0] + numpy.argmax([space_stack[i] for i in range(pair[0], pair[1]+1)])
             space_stack[lift] = space_stack[lift] + MULTI*spacer
             draw_significance(locations[pair[0]], locations[pair[1]], height + 2*spacer, level)
+            if man_sig is not None:
+                for location, height, level in man_sig:
+                    if type(location[0]) is tuple:
+                        ax.plot([location[0][0], location[0][1]], [height, height], linewidth=.5, color='k')
+                        ax.plot([location[1][0], location[1][1]], [height, height], linewidth=.5, color='k')
+                        mean_0 = (location[0][0] + location[0][1]) / 2.
+                        mean_1 = (location[1][0] + location[1][1]) / 2.
+                        draw_significance(mean_0, mean_1, height, level)
+                    else:
+                        draw_significance(location[0], location[1], height, level)
     if y_ticks is not None:
         ax.set_ylim([min(y_ticks), max(y_ticks)])
         ax.yaxis.set_ticks(y_ticks)
@@ -1225,6 +1300,135 @@ def plot_boxplot(locations, values, markers='o', colors='k', centercolors='k', l
     if labels is None:
         ax.xaxis.set_ticklabels(len(locations)*[''])
     return(ax)
+
+
+def plot_lineplot(locations, values, markers='o', colors='k', centercolors='k', linecolor='k', linestyles='solid', filled=False, labels=None, y_ticks=None, y_ticklabels=None, y_bounds=None, x_ticklabels=None, show_unc=False, draw_sig=False, sig_pairs=None, sig_levels=None, man_sig=None, spacer=.02, fig_size=(3, 2), size=SIZE, mean=False, width=.5, ax=None):
+    if centercolors is None:
+        if type(colors) is not list:
+            centercolors = colors
+        else:
+            centercolors = []
+            for color in colors:
+                if type(color) is list:
+                    centercolors.append(color[0])
+                else:
+                    centercolors.append(color)
+
+    if isinstance(locations, list):
+        multiple = True
+        num_sets = len(locations)
+        if type(linestyles) is not list:
+            linestyles = num_sets * [linestyles]
+        if type(colors) is not list:
+            colors = num_sets * [colors]
+        if type(markers) is not list:
+            markers = num_sets * [markers]
+        if type(filled) is not list:
+            filled = num_sets * [filled]
+        if type(centercolors) is not list:
+            centercolors = num_sets * [centercolors]
+    else:
+        multiple = False
+
+    fig_w, fig_h = fig_size
+    if ax == None:
+        fig = plt.figure(figsize=fig_size)
+        ax = fig.add_axes([.3 / fig_w, .2 / fig_h, (fig_w - .4) / fig_w, (fig_h - .3) / fig_h])
+    ax.spines['right'].set_visible(False)
+    ax.xaxis.set_ticks_position('bottom')
+    ax.spines['top'].set_visible(False)
+    ax.yaxis.set_ticks_position('left')
+    ax.xaxis.set_ticks(locations)
+    ax.set_xlim([min(locations) - width, max(locations) + width])
+
+    def draw_boxplot(location, (smallest, Q1, median, Q3, largest), color, filled, linestyle):
+        if filled:
+            facecolor = color
+        else:
+            facecolor = 'white'
+        if show_unc:
+            ax.plot([location, location], [Q1, Q3], linewidth=4, color='white', zorder=8)
+            ax.plot([location, location], [Q1, Q3], linewidth=.5, color=color, zorder=10)
+        ax.scatter([location], [median], s=1.5*size**2, facecolor='white', color='white', linewidth=4, zorder=9)
+        ax.scatter([location], [median], s=1.5*size**2, facecolor=facecolor, color=color, linewidth=1, zorder=11)
+        return(smallest, largest)
+
+    def draw_significance(location_1, location_2, height, level):
+        ax.plot([location_1, location_1], [height, height + spacer], color = '.7', linewidth=.5, zorder=20)
+        ax.plot([location_2, location_2], [height, height + spacer], color = '.7', linewidth=.5, zorder=20)
+        ax.plot([location_1, location_2], [height + spacer, height + spacer], color = '.7', linewidth=.5, zorder=20)
+        if level == 0:
+            level_text = 'n.s.'
+        else:
+            level_text = level*'*'
+        ax.text((location_1 + location_2) / 2., height + 1.3*spacer , level_text, ha='center', zorder=20, color='.7')
+
+    if multiple:
+        smallest_a = 0
+        largest_a = 0
+        space_stack = []
+        ys = []
+        for location, value, color, centercolor, marker, linestyle, fill in zip(locations, values, colors, centercolors, markers, linestyles, filled):
+            if len(value) == 0:
+                continue
+            smallest = numpy.min(value)
+            largest =  numpy.max(value)
+            if mean is False:
+                try:
+                    Q1 = numpy.percentile(value, 25)
+                    median = numpy.median(value)
+                    Q3 = numpy.percentile(value, 75)
+                except:
+                    median = numpy.median(value)
+                    Q1 = mediam
+                    Q3 = median
+            else:
+                stddev = numpy.std(value) / numpy.sqrt(len(value))
+                median = numpy.mean(value)
+                Q1 = median - stddev
+                Q3 = median + stddev
+            smallest, largest = draw_boxplot(location, (smallest, Q1, median, Q3, largest), centercolor, fill, linestyle)
+            space_stack.append(largest)
+            ys.append(median)
+            if largest > largest_a:
+                largest_a = largest
+            if smallest > smallest_a:
+                smallest_a = smallest
+        ax.plot(locations, ys, color=linecolor, linewidth=.75)
+    else:
+        pass
+
+    if draw_sig:
+        MULTI = 2
+        num_sig = len(sig_pairs)
+        if y_ticks is not None:
+            ax.set_ylim([min(y_ticks), max(y_ticks) + spacer*MULTI*num_sig])
+        for pair, level in zip(sig_pairs, sig_levels):
+            height = numpy.max([space_stack[i] for i in range(pair[0], pair[1]+1)])
+            lift = pair[0] + numpy.argmax([space_stack[i] for i in range(pair[0], pair[1]+1)])
+            space_stack[lift] = space_stack[lift] + MULTI*spacer
+            draw_significance(locations[pair[0]], locations[pair[1]], height + 2*spacer, level)
+    if man_sig is not None:
+        for location, height, level in man_sig:
+            if type(location[0]) is tuple:
+                ax.plot([location[0][0], location[0][1]], [height, height], linewidth=.5, color='.7')
+                ax.plot([location[1][0], location[1][1]], [height, height], linewidth=.5, color='.7')
+                mean_0 = (location[0][0] + location[0][1]) / 2.
+                mean_1 = (location[1][0] + location[1][1]) / 2.
+                draw_significance(mean_0, mean_1, height, level)
+            else:
+                draw_significance(location[0], location[1], height, level)
+    if y_ticks is not None:
+        ax.set_ylim([min(y_ticks), max(y_ticks)])
+        ax.yaxis.set_ticks(y_ticks)
+        if y_ticklabels is not None:
+            ax.yaxis.set_ticklabels(y_ticklabels)
+    if y_bounds is not None:
+        ax.set_ylim(y_bounds)
+    if labels is None:
+        ax.xaxis.set_ticklabels(len(locations)*[''])
+    return(ax)
+
 
 
 def plot_receptive_field(receptive_field, range=(.25, 64), tick_labels=[.5, 1, 2, 4, 8, 16, 32], figsize=(3, 2)):
@@ -1683,7 +1887,7 @@ def plot_trial_2(traces, times, spike_set, nosepoke, colors=[['r', 'b']], smooth
     return()
 
 
-def plot_raster(responses, nosepokes=None, cond_variable=None, condition=None, color='k', marker='o', num_trials=None, guides=True, draw_hist=True, stim_highlight=[0, .1], beginning_time=-1, ending_time=2.5, bin_width=.050, num_labels=2., width_per_sec=.7, trial_per_in=120, lw=1, size=.25):
+def plot_raster(responses, nosepokes=None, cond_variable=None, condition=None, color='k', marker='o', num_trials=None, guides=True, draw_hist=True, stim_highlight=[0, .1], beginning_time=-1, ending_time=2.5, bin_width=.050, num_labels=2., rate_max=None, width_per_sec=.7, trial_per_in=120, lw=1, size=.25):
     if cond_variable is not None:
         filtered_responses = responses[cond_variable == condition]
         if nosepokes is not None:
@@ -1755,7 +1959,9 @@ def plot_raster(responses, nosepokes=None, cond_variable=None, condition=None, c
         rates = numpy.array([firing_rate(i) for i in t])
         ax1.plot(t, rates, color=color, linewidth=lw)
         cur_ylim = ax1.get_ylim();
-
+        
+        if rate_max != None:
+            ax1.set_ylim([0, rate_max])
         #ax1.set_ylim([0, numpy.max(rates)*1.2])
         #ax1.set_yticks(numpy.arange(0,  numpy.max(rates)*1.2, int(average_rate)))
         ax_gap.set_xlim([beginning_time, ending_time])
@@ -1784,6 +1990,61 @@ def plot_raster(responses, nosepokes=None, cond_variable=None, condition=None, c
         #     ax1.set_xlabel("Time before nosepoke (s)")
         # else:
         #     ax1.set_xlabel("Time from tone onset (s)")
+
+
+def plot_firing_rate(responses, cond_variable=None, condition=None, num_trials=None, draw_bars=True, color='k', guides=True, stim_highlight=[0, .1], beginning_time=-1, ending_time=2.5, bw=0.2, max_rate=None, rate_step=None, bin_width=.050, width_per_sec=.7, fig_h=1, lw=1):
+    if cond_variable is not None:
+        filtered_responses = responses[cond_variable == condition]
+    else:
+        filtered_responses = responses
+
+    if num_trials is None:
+        num_trials = len(filtered_responses)
+    num_trials_rate = len(filtered_responses)
+
+    fig_w = width_per_sec*(ending_time - beginning_time) + .4
+    fig = plt.figure(figsize=(fig_w, fig_h))
+
+ 
+    raster_rect = [.3 / fig_w, .2 / fig_h, (fig_w - .4) / fig_w, (fig_h - .3) / fig_h]
+    ax1 = plt.axes(raster_rect)
+
+    total_responses = numpy.array([item for subarray in filtered_responses for item in subarray])
+    total_responses = total_responses[(total_responses > beginning_time)*(total_responses < ending_time)]
+    diff = ending_time - beginning_time
+    response_copy = numpy.hstack((total_responses, -total_responses + 2*beginning_time + 2*diff, -total_responses + 2*beginning_time))
+    kde = KDEUnivariate(response_copy)
+    kde.fit(bw=bw)
+
+    average_rate = len(total_responses) / (num_trials_rate * (ending_time - beginning_time))
+    pre_factor = len(total_responses) / (num_trials_rate * quad(lambda x: kde.evaluate([x])[0], beginning_time, ending_time)[0])
+    firing_rate = lambda x: pre_factor * kde.evaluate([x])[0]
+    t = sp.linspace(beginning_time, ending_time, 200)
+    ax1.set_xlim([beginning_time, ending_time])
+    rates = numpy.array([firing_rate(i) for i in t])
+    ax1.plot(t, rates, color=color, linewidth=lw)
+    cur_ylim = ax1.get_ylim()
+    if max_rate is None:
+        max_rate = numpy.max(rates)*1.1
+    if rate_step is None:
+        rate_step = int(average_rate)
+    ax1.set_ylim([0, max_rate])
+    ax1.set_yticks(numpy.arange(0,  max_rate, rate_step))
+
+    if stim_highlight is not None:
+        ax1.axvspan(stim_highlight[0], stim_highlight[1], facecolor='k', alpha=.2)
+
+    if draw_bars:
+        bins = numpy.arange(beginning_time, ending_time + bin_width, bin_width)
+        num_bins = len(bins) - 1
+        counts, bin_edges = numpy.histogram(total_responses, bins=bins)
+        counts = numpy.array(counts) / (num_trials_rate * bin_width)
+        ax1.bar(bin_edges[1:] - bin_width/2., counts, bin_width, color=color, edgecolor=color, linewidth=.5, alpha=.2)
+
+    ax1.spines['top'].set_color('none')
+    ax1.spines['right'].set_color('none')
+    ax1.xaxis.set_ticks_position('bottom')
+
 
 
 def plot_certainty(AC, PFC, var = 0, bins = numpy.arange(0,1.05,.05)):

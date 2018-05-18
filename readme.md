@@ -23,13 +23,10 @@ Additional packages required are:
 - **`Readme.md`:** This file
 - **`data/`**: Directory containing two examples each from ACtx and FR2, one responsive and one non-responsive.
 - **`animal_info.py`**: Python file containing a dictionary ANIMALS with relelvant infomation about each recording session needed to load the data. 
-- **`bayseian_neural_decoding/`:** this python packge contains the analysis tools for:
-  - the ISI-based baysian deocder
-  - the Poisson-based ISI deocder
-  - the first-spike latency-based decoder
+- **`bayseian_neural_decoding/`:** this python packge contains the analysis tools for all decoders used in the papers.
 - **`MI_beh_plots.py`**: Python module containing the plotting functions used to generate all figures.
 - **`Defining non-responsiveness.ipynb`**: Jupyter notebook containing the scripts used to identify non-responsive cells.  
-- **`Calculating cell firing statistics and receptive field.ipynb`**: Jupyter notebook containing the scripts used to calucalte all cell firing statistics shown in Extended Data Figure 7. 
+- **`Calculating cell firing statistics and receptive field.ipynb`**: Jupyter notebook containing the scripts used to calucalte all cell firing statistics.
 - **`Decoding responses.ipynb`:** Script for decoding all recording sessions referenced in `animal_info.py`.
-- **`RNN.m`**: Matlab script for the RNN analysis shown in Extended Data Figure 15
+- **`RNN.m`**: Matlab script for the RNN analysis shown in Extended Data Figure 15.
 

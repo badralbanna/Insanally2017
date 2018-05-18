@@ -7,13 +7,13 @@ from statsmodels.base.model import GenericLikelihoodModel
 from sklearn.grid_search import GridSearchCV
 from sklearn.neighbors import KernelDensity
 from .tools import flatten
-from .PSTH import PSTH
+from .PSTH import PSTH, BW_PSTH
 from scipy.integrate import quad, cumtrapz, trapz
 from scipy.interpolate import InterpolatedUnivariateSpline as ius
 from scipy.interpolate import interp1d
 
-BW_METHOD = 'cv_ml'
-BW = .200
+BW_ISI_METHOD = 'cv_ml'
+BW_ISI = .200
 WINDOW = 1.0
 STEP = .100
 
@@ -25,12 +25,12 @@ STEP = .100
 # ISIs Generated from PSTH #
 ############################
 
-# Use with set_bw_PSTH, prob_from_spikes=True
-def ISI_from_poisson(times, log=False, bw=BW, window=WINDOW, step=STEP, total_times=(0, 2.5), res=500, res_2=40, **kwargs):
+# Use with set_bw_ISI_PSTH, prob_from_spikes=True
+def ISI_from_poisson(times, log=False, bw_PSTH=BW_PSTH, window=WINDOW, step=STEP, total_times=(0, 2.5), res=500, res_2=40, **kwargs):
     start, end = total_times
     time_bins = generate_time_bins(start, end, window=window, step=step)
 
-    PSTH_func = PSTH(times, bw=bw, mirror=True, trial_time=total_times,  res=res)
+    PSTH_func = PSTH(times, bw_PSTH=bw_PSTH, mirror=True, trial_time=total_times,  res=res)
 
     delta_1 = (end - start) / (res - 1.)
     PSTH_list = [PSTH_func(y) for y in numpy.linspace(start, end, res)]
@@ -44,7 +44,7 @@ def ISI_from_poisson(times, log=False, bw=BW, window=WINDOW, step=STEP, total_ti
         value = trapz(Y, dx=delta_1) * ISI
         return value
 
-    num_trials = len(times)
+    #num_trials = len(times)
     times = flatten(times)
 
     if log:
@@ -126,7 +126,7 @@ class PoissonLogGaussian(GenericLikelihoodModel):
         return super(PoissonLogGaussian, self).fit(start_params=start_params, maxiter=maxiter, maxfun=maxfun, **kwds)
 
 
-def poisson_log_gaussian_mixture(values, times, log=True, bw=BW, window=WINDOW, step=STEP, total_times=(0, 2.5), res=1000, **kwargs):
+def poisson_log_gaussian_mixture(values, times, log=True, bw_ISI=BW_ISI, window=WINDOW, step=STEP, total_times=(0, 2.5), res=1000, **kwargs):
     time_bins = generate_time_bins(total_times[0], total_times[1], window=window, step=step)
     values = flatten(values)
     times = flatten(times)
@@ -170,10 +170,13 @@ def generate_time_bins(beginning_time, final_time, window=WINDOW, step=STEP):
     return([(i - window / 2., i + window / 2.) for i in numpy.arange(beginning_time, final_time + step, step)])
 
 
-def timed_prob(values, times, log=False, bw=BW, window=WINDOW, step=STEP, total_times=(0, 2.5), model='kde', **kwargs):
+def timed_prob(values, times, log=False, bw_ISI=BW_ISI, window=WINDOW, step=STEP, total_times=(0, 2.5), model='kde', **kwargs):
     time_bins = generate_time_bins(total_times[0], total_times[1], window=window, step=step)
     values = flatten(values)
     times = flatten(times)
+    # if latency:
+    #     times = times[~numpy.isnan(values)]
+    #     values = values[~numpy.isnan(values)]
 
     kde_dict = {}
     for i, time_bin in enumerate(time_bins):
@@ -184,7 +187,7 @@ def timed_prob(values, times, log=False, bw=BW, window=WINDOW, step=STEP, total_
         if len(current_values) > 0:
             if model == 'kde':
                 kde_dict[tuple(time_bin)] = KDEUnivariate(current_values)
-                kde_dict[tuple(time_bin)].fit(bw=bw)
+                kde_dict[tuple(time_bin)].fit(bw=bw_ISI)
             elif model == 'plg':
                 PLG = PoissonLogGaussian(current_values)
                 results = PLG.fit(disp=False)
@@ -206,19 +209,23 @@ def timed_prob(values, times, log=False, bw=BW, window=WINDOW, step=STEP, total_
     return(prob_time_wrapper)
 
 
-def set_bw_and_time_bins(ISIs, times, log=False, bw_method=BW_METHOD, inf_times=None, num_folds=10, window=WINDOW, **kwargs):
+def set_bw_ISI_in_time(ISIs, times, log=False, bw_ISI_method=BW_ISI_METHOD, inf_times=None, num_folds=10, window=WINDOW, **kwargs):
     new_ISIs = []
     for inf_time, ISI, time in zip(inf_times, ISIs, times):
-        new_ISIs.append(ISI[(time <= inf_time[0] + 2 * window) * (time > inf_time[0] + window)])
+        # if latency:
+        #     time = time[~numpy.isnan(ISI)]
+        #     ISI = ISI[~numpy.isnan(ISI)]
+        # removed 2*window and window 
+        new_ISIs.append(ISI[(time <= inf_time[0] + window) * (time > inf_time[0])])
     new_ISIs = flatten(new_ISIs)
 
     # Need to mirror data if not using log
     if not log:
-        new_ISIs = numpy.hstack((-new_ISIs, new_ISIs))
+        new_ISIs = numpy.hstack((-1 * new_ISIs, new_ISIs))
 
-    if bw_method == 'cv_ml':
+    if bw_ISI_method == 'cv_ml':
         grid = GridSearchCV(KernelDensity(), {'bandwidth': numpy.linspace(.010, .500, 50)}, cv=num_folds)  # 10-fold cross-validation
         grid.fit(new_ISIs.reshape(-1, 1))
-        bw_value = grid.best_params_['bandwidth']
+        bw_ISI_value = grid.best_params_['bandwidth']
 
-    return({'bw': bw_value})
+    return({'bw_ISI': bw_ISI_value})

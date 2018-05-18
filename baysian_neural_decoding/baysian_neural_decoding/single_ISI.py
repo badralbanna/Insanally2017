@@ -6,7 +6,7 @@ from statsmodels.nonparametric.kde import KDEUnivariate
 # from statsmodels.nonparametric.kernel_density import KDEMultivariate
 from sklearn.grid_search import GridSearchCV
 from sklearn.neighbors import KernelDensity
-from scipy.interpolate import interp1d
+from scipy.interpolate import interp1d, RectBivariateSpline
 # from scipy.interpolate import UnivariateSpline
 from .tools import flatten
 
@@ -23,13 +23,15 @@ def calc_ISIs(response, log=False, **kwargs):
     if len(response) >= 2:
         ISI = response[1:] - response[:-1]
         times = response[1:]
+        if log:
+            ISI = numpy.log10(ISI)
+        ISI = numpy.array(ISI)
+        times = numpy.array(times)
     else:
         ISI = numpy.array([])
         times = numpy.array([])
-    if not log:
-        return(numpy.array(ISI), numpy.array(times))
-    else:
-        return(numpy.log10(numpy.array(ISI)), numpy.array(times))
+    return(ISI, times)
+
 
 
 ###########################
@@ -150,7 +152,7 @@ def kde_Botev2010_2d(data, n=2**10, data_range=None):
     density = density / numpy.sum(density) * (numpy.product(a_t.shape) / numpy.product(scaling))
     x = numpy.linspace(minimum_xy[0], maximum_xy[0], n)
     y = numpy.linspace(minimum_xy[1], maximum_xy[1], n)
-    density_function = interpolate.RectBivariateSpline(x, y, density)
+    density_function = RectBivariateSpline(x, y, density)
 
     def density_function_2(xy, **kwargs):
         return(density_function(*xy, **kwargs)[0, 0])
@@ -168,7 +170,7 @@ def kde_wrapper(values, times, log=LOG, bw=BW, **kwargs):
 
     # Need to mirror data if not using log
     if not log:
-        values = numpy.hstack((-values, values))
+        values = numpy.hstack((-1 * values, values))
 
     # Using KernelDensity
     # kde = KernelDensity(bandwidth=bw)
@@ -193,7 +195,7 @@ def set_bw(ISIs, times, log=LOG, bw_method=BW_METHOD, num_folds=10, **kwargs):
 
     # Need to mirror data if not using log
     if not log:
-        ISIs = numpy.hstack((-ISIs, ISIs))
+        ISIs = numpy.hstack((-1 * ISIs, ISIs))
 
     if bw_method is 'cv_ml':
         grid = GridSearchCV(KernelDensity(), {'bandwidth': numpy.linspace(.001, 1.00, 100)}, cv=num_folds)  # 10-fold cross-validation

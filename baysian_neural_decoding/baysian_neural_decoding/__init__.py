@@ -19,5 +19,7 @@ from .inference import *
 from .scripts import *
 from .PSTH import *
 from .latency import *
+from .single_words_in_time import *
+from .joint import *
 
 __all__ = []
