@@ -7,7 +7,7 @@ This repository contains the code used for analysis in Insanally, et al 2017.
 ## Requirements
 
 All packages and scripts used to analyze our data were
-custom written in `python` (2.7.13) using `jupyter` (1.0.0) and `ipython` (5.3.0). Parallelization for multi-core processors was accomplished using `ipyparallel` (6.0.2). 
+custom written in `python` (2.7.13) using `jupyter` (1.0.0) and `ipython` (5.3.0). Parallelization for multi-core processors was accomplished using `ipyparallel` (6.0.2). The RNN script is written in `matlab`
 
 Additional packages required are:
 
@@ -30,5 +30,6 @@ Additional packages required are:
 - **`MI_beh_plots.py`**: Python module containing the plotting functions used to generate all figures.
 - **`Defining non-responsiveness.ipynb`**: Jupyter notebook containing the scripts used to identify non-responsive cells.  
 - **`Calculating cell firing statistics and receptive field.ipynb`**: Jupyter notebook containing the scripts used to calucalte all cell firing statistics shown in Extended Data Figure 7. 
-- **`Decoding responses.ipynb`:** Script for decoding all recordinf sessions referenced in `animal_info.py`.
+- **`Decoding responses.ipynb`:** Script for decoding all recording sessions referenced in `animal_info.py`.
+- **`RNN.m`**: Matlab script for the RNN analysis shown in Extended Data Figure 15
 
