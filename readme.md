@@ -28,5 +28,4 @@ Additional packages required are:
 - **`Defining non-responsiveness.ipynb`**: Jupyter notebook containing the scripts used to identify non-responsive cells.  
 - **`Calculating cell firing statistics and receptive field.ipynb`**: Jupyter notebook containing the scripts used to calucalte all cell firing statistics.
 - **`Decoding responses.ipynb`:** Script for decoding all recording sessions referenced in `animal_info.py`.
-- **`RNN.m`**: Matlab script for the RNN analysis shown in Extended Data Figure 15.
 
